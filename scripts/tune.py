@@ -35,10 +35,9 @@ MOD_GRID = [0, 0.1, 0.2, 0.3, 0.5, 0.75, 1, 1.5, 2, 3, 5, 8]
 def collect(rec: Recommender, cutoff: date, until: date, n_sample: int) -> list[dict]:
     """Признаки кандидатов по случайным лотам из (cutoff, until]; история — по cutoff."""
     cut_day, end_day = rec.to_day(cutoff), rec.to_day(until)
-    rec._build_profiles(cut_day)
-    lots = np.flatnonzero((rec.lot_day > cut_day) & (rec.lot_day <= end_day) & (np.diff(rec.lot_ptr) > 0))
+    lots =np.flatnonzero((rec.lot_day > cut_day) & (rec.lot_day <= end_day) & (np.diff(rec.lot_ptr) > 0))
     lots = np.random.default_rng(0).choice(lots, size=min(n_sample, len(lots)), replace=False)
-    popular = np.argsort(-np.where(rec.sup_person, 0, rec.sup_total))[:K]
+    popular = np.argsort(-np.where(rec.sup_person, 0, rec.profiles(cut_day + 1).total))[:K]
     w_rel = np.array([REL_WEIGHTS[k] for k in REL])
     w_mod = np.array([MOD_WEIGHTS[k] for k in MOD])
 

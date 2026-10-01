@@ -24,7 +24,7 @@ from recsys.recommender import Recommender  # noqa: E402
 n_sample = int(sys.argv[1]) if len(sys.argv) > 1 else 3000
 cutoff = date(2025, 10, 31)
 
-rec = Recommender(stats_cutoff=cutoff)
+rec = Recommender()
 con = duckdb.connect(str(ROOT / "data" / "rlt.duckdb"), read_only=True)
 pool = Pool(build(con, rec.vectorizer, "in_history", cutoff))
 pos = {inn: i for i, inn in enumerate(pool.inn)}

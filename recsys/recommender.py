@@ -29,6 +29,7 @@ MIN_SIM = 0.2
 MAX_CODES = 15  # кодов ОКПД2 из лота-запроса
 PRICE_SIGMA_FLOOR = 0.7
 LOCAL_REGIONS = {"78": 1.0, "47": 0.5}
+PROFILE_CACHE = 32  # на сколько дней запроса хранить профили поставщиков
 
 
 @dataclass
@@ -62,9 +63,20 @@ class Scored:
     sim_bids: tuple[np.ndarray, np.ndarray] | None = None  # заявки в похожих лотах и их близость
 
 
+@dataclass
+class Profiles:
+    """Общие профили поставщиков по заявкам в лотах, опубликованных раньше `day`."""
+    day: int
+    total: np.ndarray  # число заявок
+    ais_share: np.ndarray  # доля заявок в АИС ГЗ
+    smp: np.ndarray  # побеждал в закупках для СМП
+    price_n: np.ndarray
+    price_mean: np.ndarray  # по логарифму начальной цены
+    price_std: np.ndarray
+
+
 class Recommender:
-    def __init__(self, path: Path = INDEX, stats_cutoff: date | None = None):
-        """stats_cutoff — по какую дату считать общие профили поставщиков (для метрики)."""
+    def __init__(self, path: Path = INDEX):
         with open(path, "rb") as f:
             self.__dict__.update(pickle.load(f))
         self.epoch = date.fromisoformat(self.epoch)
@@ -79,7 +91,8 @@ class Recommender:
         self.win_bonus = WIN_BONUS
         self.top_lots = TOP_LOTS
         self.sim_power = SIM_POWER
-        self._build_profiles(self.max_day if stats_cutoff is None else self.to_day(stats_cutoff))
+        self.bid_day = self.lot_day[self.bid_lot]
+        self._profiles: dict[int, Profiles] = {}
 
     def to_day(self, d: date) -> int:
         return (d - self.epoch).days
@@ -87,22 +100,34 @@ class Recommender:
     def to_date(self, day: int) -> date:
         return self.epoch + timedelta(days=int(day))
 
-    def _build_profiles(self, cutoff_day: int) -> None:
-        """Общие профили поставщиков по заявкам не позже cutoff_day."""
-        keep = self.lot_day[self.bid_lot] <= cutoff_day
+    def profiles(self, day: int) -> Profiles:
+        """Профили на день запроса — как и остальные признаки, только по истории строго до него.
+
+        Расчёт (~60 мс) запоминается по дню: метрика и повторные запросы спрашивают одни и те же дни.
+        """
+        p = self._profiles.get(day)
+        if p is not None:
+            return p
+        keep = self.bid_day < day
         lot, sup, win = self.bid_lot[keep], self.bid_sup[keep], self.bid_win[keep]
         n = self.n_sup
-        self.sup_total = np.bincount(sup, minlength=n).astype(float)
-        self.sup_ais_share = np.bincount(sup, weights=self.lot_ais[lot], minlength=n) / np.maximum(self.sup_total, 1)
-        self.sup_smp = np.bincount(sup, weights=self.lot_smp[lot] & win, minlength=n) > 0
+        total = np.bincount(sup, minlength=n).astype(float)
         lp = self.lot_logprice[lot].astype(float)
         ok = ~np.isnan(lp)
         cnt = np.bincount(sup[ok], minlength=n)
         mean = np.bincount(sup[ok], weights=lp[ok], minlength=n) / np.maximum(cnt, 1)
         var = np.bincount(sup[ok], weights=lp[ok] ** 2, minlength=n) / np.maximum(cnt, 1) - mean**2
-        self.sup_price_n = cnt
-        self.sup_price_mean = mean
-        self.sup_price_std = np.maximum(np.sqrt(np.maximum(var, 0)), PRICE_SIGMA_FLOOR)
+        p = Profiles(
+            day=day, total=total,
+            ais_share=np.bincount(sup, weights=self.lot_ais[lot], minlength=n) / np.maximum(total, 1),
+            smp=np.bincount(sup, weights=self.lot_smp[lot] & win, minlength=n) > 0,
+            price_n=cnt, price_mean=mean,
+            price_std=np.maximum(np.sqrt(np.maximum(var, 0)), PRICE_SIGMA_FLOOR),
+        )
+        if len(self._profiles) >= PROFILE_CACHE:
+            self._profiles.pop(next(iter(self._profiles)), None)
+        self._profiles[day] = p
+        return p
 
     # ---------- построение запроса ----------
 
@@ -212,14 +237,15 @@ class Recommender:
 
         mod = {k: np.zeros(n) for k in MOD_WEIGHTS}
         mod["region"] = self.sup_local
-        mod["spec"] = np.minimum(facts["okpd2_bids"] / np.maximum(self.sup_total, 1), 1.0)
+        p = self.profiles(day)
+        mod["spec"] = np.minimum(facts["okpd2_bids"] / np.maximum(p.total, 1), 1.0)
         if not np.isnan(q.logprice):
-            z = (q.logprice - self.sup_price_mean) / self.sup_price_std
-            mod["price"] = np.where(self.sup_price_n > 0, np.exp(-0.5 * z**2), 0.0)
+            z = (q.logprice - p.price_mean) / p.price_std
+            mod["price"] = np.where(p.price_n > 0, np.exp(-0.5 * z**2), 0.0)
         if q.is_ais is not None:
-            mod["source"] = self.sup_ais_share if q.is_ais else 1 - self.sup_ais_share
+            mod["source"] = p.ais_share if q.is_ais else 1 - p.ais_share
         if q.is_smp:
-            mod["smp"] = self.sup_smp.astype(float)
+            mod["smp"] = p.smp.astype(float)
         return Features(rel=rel, mod=mod, facts=facts, codes=codes, sim_bids=sim_bids)
 
     def score(self, q: Query, as_of_day: int | None = None, include_persons: bool = False) -> Scored:
@@ -238,6 +264,7 @@ class Recommender:
     def recommend(self, q: Query, top_n: int = 20, as_of_day: int | None = None,
                   include_persons: bool = False) -> dict:
         s = self.score(q, as_of_day, include_persons)
+        p = self.profiles(q.day if as_of_day is None else as_of_day)
         k = min(top_n, int((s.score > 0).sum()))
         top = np.argsort(-s.score)[:k]
         items = []
@@ -256,11 +283,11 @@ class Recommender:
                 "inn": self.sup_inn[i],
                 "score": round(float(s.score[i]), 4),
                 "region": self.sup_region[i],
-                "total_bids": int(self.sup_total[i]),
+                "total_bids": int(p.total[i]),
                 "parts": {k: round(float(v[i]), 4) for k, v in s.parts.items() if v[i] > 0},
                 "facts": {k: int(v[i]) for k, v in s.facts.items() if v[i] > 0},
                 "mods": {k: round(float(v[i]), 3) for k, v in s.mods.items() if v[i] > 0},
-                "typical_price": float(np.exp(self.sup_price_mean[i])) if self.sup_price_n[i] > 0 else None,
+                "typical_price": float(np.exp(p.price_mean[i])) if p.price_n[i] > 0 else None,
                 "similar_lots": similar,
             })
         return {"codes": s.codes, "items": items}

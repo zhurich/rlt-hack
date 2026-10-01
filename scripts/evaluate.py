@@ -21,7 +21,7 @@ n_sample = int(sys.argv[1]) if len(sys.argv) > 1 else 2000
 cutoff = date.fromisoformat(sys.argv[2]) if len(sys.argv) > 2 else date(2025, 10, 31)
 K = 10
 
-rec = Recommender(stats_cutoff=cutoff)
+rec = Recommender()
 cut_day = rec.to_day(cutoff)
 
 has_bids = np.diff(rec.lot_ptr) > 0
