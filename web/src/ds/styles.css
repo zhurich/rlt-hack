@@ -1,0 +1,221 @@
+/* Дизайн-система «Нева»: токены. Шрифты подключаются локально в main.jsx (@fontsource), без внешних CDN. */
+:root {
+  --font-sans: "Golos Text", "PT Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "PT Mono", ui-monospace, monospace;
+}
+
+/* colors */
+:root {
+  /* Нева — основной синий */
+  --blue-50: #EDF3FD;
+  --blue-100: #D6E4F9;
+  --blue-200: #AEC8F2;
+  --blue-300: #7AA5E6;
+  --blue-400: #4380D6;
+  --blue-500: #1A60C4;
+  --blue-600: #0F4EA8;
+  --blue-700: #0B3F8A;
+  --blue-800: #08306B;
+  --blue-900: #05214A;
+
+  /* Нейтральные — холодный графит */
+  --gray-0: #FFFFFF;
+  --gray-25: #F4F6F9;
+  --gray-50: #F1F3F6;
+  --gray-100: #E6E9EE;
+  --gray-200: #D5DAE1;
+  --gray-300: #B7BFCA;
+  --gray-400: #8C96A5;
+  --gray-500: #677284;
+  --gray-600: #4D5767;
+  --gray-700: #37404E;
+  --gray-800: #232A35;
+  --gray-900: #141920;
+
+  /* Акценты */
+  --gold-100: #F8EDD2;
+  --gold-500: #B8860B;
+  --gold-700: #7A5A06;
+  --teal-50: #E6F5F3;
+  --teal-100: #C4E8E3;
+  --teal-500: #0E8C7F;
+  --teal-700: #0A6158;
+
+  /* Семантика */
+  --green-50: #E8F5EC;
+  --green-500: #1E7B45;
+  --green-700: #145A31;
+  --amber-50: #FDF2E4;
+  --amber-500: #B35C00;
+  --amber-700: #7F4100;
+  --red-50: #FCECEC;
+  --red-500: #C0282D;
+  --red-700: #8E1C20;
+
+  /* Семантические алиасы — текст */
+  --text-primary: var(--gray-900);
+  --text-secondary: var(--gray-600);
+  --text-tertiary: var(--gray-500);
+  --text-disabled: var(--gray-400);
+  --text-inverse: var(--gray-0);
+  --text-link: var(--blue-600);
+  --text-link-hover: var(--blue-700);
+
+  /* Поверхности */
+  --surface-page: #EEF1F5;
+  --surface-card: var(--gray-0);
+  --surface-sunken: var(--gray-50);
+  --surface-hover: var(--gray-50);
+  --surface-selected: var(--blue-50);
+  --surface-header: var(--blue-800);
+  --surface-header-main: var(--gray-0);
+  --surface-overlay: rgba(20, 25, 32, 0.48);
+
+  /* Границы */
+  --border-subtle: var(--gray-100);
+  --border-default: var(--gray-200);
+  --border-strong: var(--gray-300);
+  --border-focus: var(--blue-500);
+
+  /* Действия */
+  --action-primary: var(--blue-600);
+  --action-primary-hover: var(--blue-700);
+  --action-primary-active: var(--blue-800);
+  --action-secondary-bg: var(--blue-50);
+  --action-secondary-hover: var(--blue-100);
+  --action-danger: var(--red-500);
+
+  /* Статусы */
+  --status-success-fg: var(--green-700);
+  --status-success-bg: var(--green-50);
+  --status-success-solid: var(--green-500);
+  --status-warning-fg: var(--amber-700);
+  --status-warning-bg: var(--amber-50);
+  --status-warning-solid: var(--amber-500);
+  --status-danger-fg: var(--red-700);
+  --status-danger-bg: var(--red-50);
+  --status-danger-solid: var(--red-500);
+  --status-info-fg: var(--blue-700);
+  --status-info-bg: var(--blue-50);
+  --status-info-solid: var(--blue-500);
+  --status-neutral-fg: var(--gray-700);
+  --status-neutral-bg: var(--gray-50);
+  --status-neutral-solid: var(--gray-500);
+
+  /* Подбор (релевантность) */
+  --match-fg: var(--teal-700);
+  --match-bg: var(--teal-50);
+  --match-solid: var(--teal-500);
+  --match-track: var(--teal-100);
+
+  /* Знак качества / проверенный поставщик */
+  --verified-fg: var(--gold-700);
+  --verified-bg: var(--gold-100);
+  --verified-solid: var(--gold-500);
+}
+
+/* typography */
+:root {
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --text-display: 32px;   --leading-display: 40px;
+  --text-h1: 26px;        --leading-h1: 32px;
+  --text-h2: 22px;        --leading-h2: 28px;
+  --text-h3: 18px;        --leading-h3: 24px;
+  --text-h4: 16px;        --leading-h4: 22px;
+  --text-body-l: 16px;    --leading-body-l: 24px;
+  --text-body: 14px;      --leading-body: 20px;
+  --text-caption: 12px;   --leading-caption: 16px;
+  --text-overline: 11px;  --leading-overline: 16px;
+  --tracking-overline: 0.06em;
+  --tracking-tight: -0.01em;
+
+  --font-heading: var(--font-sans);
+  --font-body: var(--font-sans);
+  --font-code: var(--font-mono);
+}
+
+/* spacing */
+:root {
+  --space-0: 0;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 20px;
+  --space-7: 24px;
+  --space-8: 32px;
+  --space-9: 40px;
+  --space-10: 48px;
+  --space-11: 64px;
+
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --radius-pill: 999px;
+
+  --control-h-sm: 32px;
+  --control-h-md: 36px;
+  --control-h-lg: 44px;
+
+  --header-top-h: 32px;
+  --header-main-h: 56px;
+  --header-h: 88px;
+  --sidebar-w: 288px;
+  --container-max: 1312px;
+  --gutter: 20px;
+}
+
+/* effects */
+:root {
+  --shadow-0: none;
+  --shadow-1: 0 1px 2px rgba(20, 25, 32, 0.06);
+  --shadow-2: 0 4px 12px rgba(20, 25, 32, 0.10), 0 1px 2px rgba(20, 25, 32, 0.06);
+  --shadow-3: 0 16px 40px rgba(20, 25, 32, 0.18), 0 2px 6px rgba(20, 25, 32, 0.08);
+  --focus-ring: 0 0 0 3px rgba(31, 95, 184, 0.32);
+  --focus-ring-danger: 0 0 0 3px rgba(192, 40, 45, 0.28);
+
+  --border-width: 1px;
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-toast: 400;
+}
+
+/* base */
+html, body { margin: 0; }
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--text-primary);
+  background: var(--surface-page);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum" 1;
+}
+a { color: var(--text-link); text-decoration: none; }
+a:hover { color: var(--text-link-hover); text-decoration: underline; }
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+@keyframes neva-spin { to { transform: rotate(360deg); } }
+@keyframes neva-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* Раскладка экранов: на узких экранах боковая колонка уходит под основную. */
+.neva-split { display: flex; gap: 24px; align-items: flex-start; }
+.neva-split > aside { width: 340px; flex: none; }
+@media (max-width: 960px) {
+  .neva-split { flex-direction: column; }
+  .neva-split > aside { width: 100%; position: static !important; max-height: none !important; }
+}

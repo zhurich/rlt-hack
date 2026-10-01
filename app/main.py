@@ -1,6 +1,6 @@
 """API и страница подбора поставщиков.
 
-    uvicorn app.main:app --port 8000
+    python -m uvicorn app.main:app --port 8010
 """
 import time
 from contextlib import asynccontextmanager
@@ -8,11 +8,13 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from recsys.service import Service
 
-WEB = Path(__file__).resolve().parent.parent / "web"
+# Страница — React-приложение из web/, собранное командой `npm run build` в web/dist.
+DIST = Path(__file__).resolve().parent.parent / "web" / "dist"
 
 # Цифры качества из docs/metrics.md и docs/enrichment.md — показываются в подвале страницы.
 QUALITY = {
@@ -89,6 +91,11 @@ def stats():
     return state["stats"]
 
 
+app.mount("/assets", StaticFiles(directory=DIST / "assets", check_dir=False), name="assets")
+
+
 @app.get("/")
 def index():
-    return FileResponse(WEB / "index.html")
+    if not (DIST / "index.html").exists():
+        raise HTTPException(503, "Страница не собрана: выполните `npm install && npm run build` в каталоге web")
+    return FileResponse(DIST / "index.html")
