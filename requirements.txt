@@ -1,0 +1,7 @@
+duckdb
+numpy
+scipy
+scikit-learn
+snowballstemmer
+fastapi
+uvicorn

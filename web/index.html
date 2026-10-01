@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Подбор поставщиков</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #fff; --line: #e2e5ea; --text: #1c2330; --muted: #677084;
+    --accent: #1f5fd0; --accent-soft: #e8f0fd;
+    --green: #17794a; --green-bg: #e3f4eb; --amber: #96600a; --amber-bg: #fcf0d8;
+    --red: #b3261e; --red-bg: #fbe6e4; --teal: #0d6e78; --teal-bg: #dff3f5; --gray-bg: #eceef2;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  header { background: var(--card); border-bottom: 1px solid var(--line); padding: 14px 24px; }
+  .wrap { max-width: 1320px; margin: 0 auto; }
+  h1 { font-size: 18px; margin: 0 0 10px; font-weight: 650; }
+  h1 small { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 8px; }
+
+  .modes { display: flex; gap: 4px; margin-bottom: 10px; }
+  .modes button { border: 1px solid var(--line); background: var(--card); padding: 5px 12px; border-radius: 6px; cursor: pointer; }
+  .modes button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .form { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
+  .form input, .form select, .form textarea { border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; background: #fff; }
+  .form input:focus, .form textarea:focus, .form select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .form .grow { flex: 1 1 340px; }
+  .form textarea { resize: vertical; min-height: 36px; height: 36px; }
+  .btn { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-weight: 600; }
+  .btn:hover { filter: brightness(1.08); }
+  label.chk { display: flex; align-items: center; gap: 5px; padding: 7px 0; white-space: nowrap; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+  .chips span.lbl { color: var(--muted); font-size: 12px; }
+  .chip { border: 1px solid var(--line); background: #fff; border-radius: 14px; padding: 3px 11px; cursor: pointer;
+    font-size: 12.5px; max-width: 290px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .found { margin-top: 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; max-height: 260px; overflow: auto; }
+  .found div { padding: 6px 10px; cursor: pointer; border-bottom: 1px solid var(--line); display: flex; gap: 10px; }
+  .found div:last-child { border-bottom: 0; }
+  .found div:hover { background: var(--accent-soft); }
+  .found .meta { color: var(--muted); white-space: nowrap; font-size: 12px; }
+
+  main { display: grid; grid-template-columns: 360px 1fr; gap: 18px; padding: 18px 24px; align-items: start; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .side { position: sticky; top: 12px; display: grid; gap: 12px; }
+  @media (max-width: 900px) { .side { position: static; } }
+  .panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+  .subject { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; }
+  dt { color: var(--muted); } dd { margin: 0; }
+  .code { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+  .pos { margin: 8px 0 0; padding: 0; list-style: none; font-size: 13px; max-height: 190px; overflow: auto; }
+  .pos li { padding: 3px 0; border-top: 1px dashed var(--line); display: flex; gap: 8px; justify-content: space-between; }
+  .pos .code { color: var(--muted); white-space: nowrap; }
+  .actual { list-style: none; margin: 0; padding: 0; }
+  .actual li { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; border-top: 1px dashed var(--line); }
+  .actual li:first-child { border-top: 0; }
+  .place { min-width: 46px; text-align: center; border-radius: 5px; padding: 1px 6px; font-weight: 600; font-size: 12px; }
+  .place.hit { background: var(--green-bg); color: var(--green); }
+  .place.near { background: var(--amber-bg); color: var(--amber); }
+  .place.miss { background: var(--gray-bg); color: var(--muted); }
+  .note { color: var(--muted); font-size: 12px; margin-top: 8px; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 10px; align-items: center; }
+  .tabs button { border: 0; background: transparent; padding: 7px 12px; border-radius: 7px; cursor: pointer; font-weight: 600; color: var(--muted); }
+  .tabs button.on { background: var(--card); color: var(--text); box-shadow: 0 0 0 1px var(--line); }
+  .tabs .time { margin-left: auto; color: var(--muted); font-size: 12px; }
+
+  .item { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+    display: grid; grid-template-columns: 34px 1fr 150px; gap: 12px; }
+  .item.actual-hit { border-color: #8fcfae; box-shadow: inset 3px 0 0 var(--green); }
+  .rank { font-size: 18px; font-weight: 650; color: var(--muted); text-align: center; }
+  .name { font-weight: 650; font-size: 15px; }
+  .inn { color: var(--muted); font-size: 12.5px; margin-left: 6px; font-weight: 400; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; margin: 5px 0 6px; }
+  .badge { border-radius: 5px; padding: 1px 8px; font-size: 12px; font-weight: 600; cursor: default; }
+  .role { background: var(--gray-bg); color: #3a4356; }
+  .st-проверенный { background: var(--green-bg); color: var(--green); }
+  .st-участник { background: var(--accent-soft); color: var(--accent); }
+  .st-новый-подтверждён { background: var(--teal-bg); color: var(--teal); }
+  .st-новый { background: var(--gray-bg); color: var(--muted); }
+  .st-требует-проверки { background: var(--amber-bg); color: var(--amber); }
+  .st-риск { background: var(--red-bg); color: var(--red); }
+  .won { background: var(--green); color: #fff; } .took { background: var(--green-bg); color: var(--green); }
+  .why { margin: 0; padding-left: 18px; }
+  .why li { margin: 2px 0; }
+  .statline { color: var(--muted); font-size: 12.5px; margin-bottom: 4px; }
+  .more { color: var(--accent); cursor: pointer; font-size: 12.5px; background: none; border: 0; padding: 4px 0 0; }
+  .details { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 13px; }
+  .item.open .details { display: block; }
+  .details h3 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 8px 0 4px; }
+  .details h3:first-child { margin-top: 0; }
+  .sim { cursor: pointer; color: var(--accent); }
+  .sim:hover { text-decoration: underline; }
+  .score { text-align: right; }
+  .score b { font-size: 17px; }
+  .score .lbl { color: var(--muted); font-size: 11.5px; }
+  .bars { margin-top: 6px; display: grid; gap: 4px; }
+  .bar { font-size: 11.5px; color: var(--muted); text-align: left; }
+  .bar i { display: block; height: 5px; border-radius: 3px; background: var(--accent); margin-top: 1px; }
+  .boosts { font-size: 11.5px; color: var(--muted); text-align: left; margin-top: 6px; }
+  .empty { color: var(--muted); padding: 40px 0; text-align: center; }
+  .err { background: var(--red-bg); color: var(--red); padding: 10px 14px; border-radius: 8px; }
+  footer { color: var(--muted); font-size: 12px; padding: 4px 24px 24px; }
+  footer b { color: var(--text); }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Подбор поставщиков <small>АИС ГЗ и электронный магазин Санкт-Петербурга</small></h1>
+    <div class="modes">
+      <button id="m-lot" class="on">Закупка из истории</button>
+      <button id="m-new">Новая закупка</button>
+    </div>
+    <form id="f-lot" class="form">
+      <input id="lot-q" class="grow" placeholder="Номер лота или слова из предмета закупки" autocomplete="off">
+      <button class="btn">Найти</button>
+    </form>
+    <form id="f-new" class="form" hidden>
+      <textarea id="n-text" class="grow" placeholder="Предмет закупки, например: поставка бумаги для офисной техники А4"></textarea>
+      <input id="n-codes" placeholder="ОКПД2 через запятую (необязательно)" style="width:230px">
+      <input id="n-price" type="number" min="0" placeholder="Цена, руб." style="width:130px">
+      <select id="n-source"><option value="">Площадка</option><option>ЭМ</option><option>АИС ГЗ</option></select>
+      <label class="chk"><input id="n-smp" type="checkbox"> для СМП</label>
+      <button class="btn">Подобрать</button>
+    </form>
+    <div id="found"></div>
+    <div class="chips" id="chips"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <main id="main"><div class="empty" style="grid-column:1/-1">Выберите пример, найдите закупку или опишите новую.</div></main>
+  <footer id="footer"></footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = x => x == null ? '—' : Math.round(x).toLocaleString('ru-RU');
+const rub = x => x == null ? '—' : num(x) + ' руб.';
+const money = x => x == null ? null : x >= 1e9 ? (x / 1e9).toFixed(1).replace('.', ',') + ' млрд руб.'
+  : x >= 1e6 ? (x / 1e6).toFixed(1).replace('.', ',') + ' млн руб.' : x >= 1e3 ? Math.round(x / 1e3) + ' тыс. руб.' : Math.round(x) + ' руб.';
+const date = s => s ? s.split('-').reverse().join('.') : '—';
+let tab = 'known', data = null;
+
+async function api(url, opts) {
+  const r = await fetch(url, opts);
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || 'Ошибка ' + r.status);
+  return r.json();
+}
+
+function setMode(isNew) {
+  $('m-lot').classList.toggle('on', !isNew); $('m-new').classList.toggle('on', isNew);
+  $('f-lot').hidden = isNew; $('f-new').hidden = !isNew; $('found').innerHTML = '';
+}
+$('m-lot').onclick = () => setMode(false);
+$('m-new').onclick = () => setMode(true);
+
+async function run(promise) {
+  $('main').innerHTML = '<div class="empty" style="grid-column:1/-1">Подбираем…</div>';
+  $('found').innerHTML = '';
+  try { data = await promise; tab = 'known'; render(); }
+  catch (e) { $('main').innerHTML = `<div class="err" style="grid-column:1/-1">${esc(e.message)}</div>`; }
+}
+const loadLot = id => { setMode(false); $('lot-q').value = id; location.hash = 'lot=' + id; run(api('/api/lot/' + id)); };
+
+$('f-lot').onsubmit = async e => {
+  e.preventDefault();
+  const q = $('lot-q').value.trim();
+  if (!q) return;
+  if (/^\d+$/.test(q)) return loadLot(q);
+  const rows = await api('/api/search?q=' + encodeURIComponent(q));
+  $('found').innerHTML = rows.length ? `<div class="found">${rows.map(r =>
+    `<div onclick="loadLot(${r.lot_id})"><span class="meta">${date(r.publish_date)} · ${esc(r.source)} · ${money(r.price) ?? '—'} · уч. ${r.participants}</span><span>${esc(r.subject)}</span></div>`).join('')}</div>`
+    : '<div class="note">Ничего не найдено.</div>';
+};
+
+$('f-new').onsubmit = e => {
+  e.preventDefault();
+  const body = {
+    text: $('n-text').value, codes: $('n-codes').value.split(/[,;\s]+/).filter(Boolean),
+    price: parseFloat($('n-price').value) || null, source: $('n-source').value || null, is_smp: $('n-smp').checked,
+  };
+  run(api('/api/recommend', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)}));
+};
+
+function lotPanel(d) {
+  const l = d.lot;
+  const codes = d.codes.map(c => `<span class="code">${esc(c.code)}</span> ${Math.round(c.share * 100)}%`).join(', ') || '—';
+  let h = `<div class="panel"><h2>Закупка${l.lot_id ? ' № ' + l.lot_id : ''}</h2>
+    <div class="subject">${esc(l.subject)}</div><dl>
+    ${l.publish_date ? `<dt>Дата</dt><dd>${date(l.publish_date)}</dd>` : ''}
+    <dt>Площадка</dt><dd>${esc(l.source || 'не указана')}${l.is_smp ? ' · для СМП' : ''}</dd>
+    <dt>Цена</dt><dd>${rub(l.price)}</dd>
+    ${l.customer_inn ? `<dt>Заказчик</dt><dd>ИНН ${esc(l.customer_inn)}</dd>` : ''}
+    <dt>ОКПД2</dt><dd>${codes}${d.codes_inferred ? '<div class="note" style="margin:0">определены по похожим закупкам</div>' : ''}</dd></dl>`;
+  if (l.positions.length) h += `<ul class="pos">${l.positions.map(p =>
+    `<li><span>${esc(p.name)}${p.n > 1 ? ' ×' + p.n : ''}</span><span class="code">${esc(p.code)}</span></li>`).join('')}</ul>`;
+  h += '</div>';
+  if (l.participants.length) {
+    h += `<div class="panel"><h2>Кто участвовал на самом деле</h2><ul class="actual">${l.participants.map(p => {
+      const cls = p.place == null ? 'miss' : p.place <= 10 ? 'hit' : p.place <= 50 ? 'near' : 'miss';
+      return `<li><span class="place ${cls}">${p.place == null ? '—' : '№ ' + p.place}</span>
+        <span>${esc(p.name || 'ИНН ' + p.inn)}${p.won ? ' <span class="badge won">победитель</span>' : ''}</span></li>`;
+    }).join('')}</ul><div class="note">Место в нашей выдаче. Подбор видит только историю до даты этой закупки — участники самого лота ему неизвестны.</div></div>`;
+  }
+  return h;
+}
+
+function itemCard(it, rank, actual, maxScore) {
+  const c = it.company, isNew = !c.in_history;
+  const mark = actual[it.inn];
+  const st = (c.status || '').replace(/[ ,]+/g, '-');
+  const rel = it.factors.relevance, boosts = it.factors.boosts;
+  const shown = it.reasons.slice(0, 3), rest = it.reasons.slice(3);
+  const facts = [
+    c.okved_main ? `ОКВЭД ${esc(c.okved_main)} — ${esc(c.okved_main_name)}` : null,
+    c.place ? esc(c.place) : (c.region ? 'регион ' + esc(c.region) : null),
+    c.revenue ? 'выручка за 2025 год — ' + money(c.revenue) : null,
+    c.headcount ? 'работников: ' + c.headcount : null,
+    c.in_history ? `участий: ${num(c.bids)}, побед: ${num(c.wins)}, последняя заявка ${date(c.last_bid)}` : null,
+    c.tax_debt > 0 ? 'налоговая задолженность — ' + money(c.tax_debt) : null,
+  ].filter(Boolean);
+  return `<div class="item${mark != null ? ' actual-hit' : ''}">
+    <div class="rank">${rank}</div>
+    <div>
+      <div class="name">${esc(c.name || 'Название не найдено в реестрах')}<span class="inn">ИНН ${esc(it.inn)}</span></div>
+      <div class="badges">
+        <span class="badge st-${st}" title="${esc(c.status_reason)}">${esc(c.status || '—')}</span>
+        <span class="badge role" title="${esc(c.role_reason)}">${esc(c.role || '—')}</span>
+        ${mark === true ? '<span class="badge won">победил в этой закупке</span>' : mark === false ? '<span class="badge took">участвовал в этой закупке</span>' : ''}
+      </div>
+      <div class="statline">${esc(c.status_reason || '')}</div>
+      <ul class="why">${shown.map(r => `<li>${esc(r)}</li>`).join('')}</ul>
+      <button class="more" onclick="this.closest('.item').classList.toggle('open')">Подробнее</button>
+      <div class="details">
+        ${rest.length ? `<h3>Ещё причины</h3><ul class="why">${rest.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
+        <h3>Роль</h3>${esc(c.role || '—')} — ${esc(c.role_reason || '')}
+        <h3>О компании</h3>${facts.map(esc_keep).join('<br>') || '—'}
+        ${!isNew && it.similar_lots.length ? `<h3>Похожие закупки с его участием</h3>${it.similar_lots.map(s =>
+          `<div><span class="sim" onclick="loadLot(${s.lot_id})">№ ${s.lot_id}</span> — ${esc(s.subject || '')} (${s.won ? 'победил' : 'участвовал'}, близость ${Math.round(s.sim * 100)}%)</div>`).join('')}` : ''}
+        <h3>Источники</h3>${(c.sources || []).map(esc).join('<br>') || '—'}
+      </div>
+    </div>
+    <div class="score">
+      <b>${Math.round(100 * it.score / maxScore)}</b><div class="lbl">балл из 100</div>
+      <div class="bars">${rel.map(f => `<div class="bar">${esc(f.label)} ${f.share}%<i style="width:${f.share}%"></i></div>`).join('')}</div>
+      ${boosts.length ? `<div class="boosts">Надбавки: ${boosts.map(b => `${esc(b.label).toLowerCase()} +${b.pct}%`).join(', ')}</div>` : ''}
+    </div>
+  </div>`;
+}
+const esc_keep = s => s;  // строки в facts уже экранированы по частям
+
+function render() {
+  const d = data, actual = {};
+  d.lot.participants.forEach(p => actual[p.inn] = p.won);
+  const items = tab === 'known' ? d.items : d.new_items;
+  const maxScore = items.length ? items[0].score : 1;
+  const hint = tab === 'known'
+    ? 'Поставщики из истории закупок. Балл — относительно первого места.'
+    : 'Компании Санкт-Петербурга и Ленобласти из открытых реестров, которые в этих закупках ещё не участвовали.';
+  $('main').innerHTML = `<div class="side">${lotPanel(d)}</div><div>
+    <div class="tabs">
+      <button class="${tab === 'known' ? 'on' : ''}" onclick="tab='known';render()">Рекомендуемые поставщики · ${d.items.length}</button>
+      <button class="${tab === 'new' ? 'on' : ''}" onclick="tab='new';render()">Новые компании из реестров · ${d.new_items.length}</button>
+      <span class="time">ответ за ${d.elapsed_ms} мс</span>
+    </div>
+    <div class="note" style="margin:0 0 8px">${hint}</div>
+    ${items.length ? items.map((it, i) => itemCard(it, i + 1, actual, maxScore)).join('') : '<div class="empty">Подходящих компаний не нашлось.</div>'}
+  </div>`;
+}
+
+(async () => {
+  const [examples, s] = await Promise.all([api('/api/examples'), api('/api/stats')]);
+  $('chips').innerHTML = '<span class="lbl">Примеры:</span>' + examples.map(e =>
+    `<span class="chip" title="${esc(e.subject)}" onclick="loadLot(${e.lot_id})">${esc(e.subject)}</span>`).join('');
+  $('footer').innerHTML = `Качество на ${num(s.test_lots)} отложенных закупках ноября–декабря 2025: в первой десятке оказываются
+    <b>${Math.round(s.recall10 * 100)}%</b> реальных участников и <b>${Math.round(s.winner10 * 100)}%</b> победителей
+    (подбор только по коду ОКПД2 — ${Math.round(s.baseline_okpd * 100)}%, самые активные поставщики — ${Math.round(s.baseline_popular * 100)}%).
+    В базе ${num(s.lots)} закупок, ${num(s.known)} поставщиков из истории и ${num(s.pool)} новых компаний, из них ${num(s.new_confirmed)} с подтверждённой деятельностью.<br>
+    Источники: ${s.sources.map(esc).join(' · ')}. Внешние сервисы при подборе не используются.`;
+})();
+// Ссылка вида /#lot=6008824 сразу открывает закупку.
+const fromHash = /lot=(\d+)/.exec(location.hash);
+if (fromHash) loadLot(fromHash[1]);
+</script>
+</body>
+</html>
