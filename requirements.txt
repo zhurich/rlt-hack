@@ -1,7 +1,9 @@
-duckdb
-numpy
-scipy
-scikit-learn
-snowballstemmer
-fastapi
-uvicorn
+# Версии закреплены: data/index.pkl и data/pool.pkl — pickle с объектами scikit-learn/scipy/numpy,
+# а data/rlt.duckdb читается той же версией DuckDB, которой записан.
+duckdb==1.5.6
+numpy==2.5.3
+scipy==1.18.1
+scikit-learn==1.9.1
+snowballstemmer==3.1.1
+fastapi==0.142.2
+uvicorn==0.54.0

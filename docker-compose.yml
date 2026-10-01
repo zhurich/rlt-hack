@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    image: rlt-supplier-search
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8010}:8010"
+    volumes:
+      # index.pkl, pool.pkl, rlt.duckdb — в git не попадают, кладутся на сервер отдельно
+      - ./data:/app/data:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/api/stats')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
