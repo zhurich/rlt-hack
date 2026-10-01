@@ -54,7 +54,7 @@ export function CompareScreen({ items, actual, toggleCompare, clearCompare, open
       </div>
       {!items.length ? <Card padding={0}><EmptyState icon="git-compare" title="Список сравнения пуст" action={<Button variant="outline" onClick={back}>Перейти к подбору</Button>}>Добавьте поставщиков кнопкой «Сравнить» в выдаче.</EmptyState></Card> : (
         <div style={{ overflowX: 'auto', background: 'var(--surface-card)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-lg)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+          <table className="app-compare" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead><tr>
               <th style={{ width: 180, borderBottom: '1px solid var(--border-default)' }} />
               {items.map((s) => (

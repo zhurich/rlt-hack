@@ -4,14 +4,15 @@ import { SearchScreen } from './screens/SearchScreen';
 import { SupplierProfile } from './screens/SupplierProfile';
 import { CompareScreen } from './screens/CompareScreen';
 import { AboutScreen } from './screens/AboutScreen';
-import { api, errorText, relScore } from './lib';
+import { api, errorText, relScore, useNarrow } from './lib';
 import type { Actual, Item, Lists, LotBrief, NewPurchase, RankedItem, Recommendation, Stats } from './types';
 
 type Screen = 'search' | 'supplier' | 'compare' | 'about';
 type NavId = 'search' | 'about';
 
 const hashLot = () => { const m = /lot=(\d+)/.exec(location.hash); return m ? m[1] : null; };
-const NAV: { id: NavId; label: string }[] = [{ id: 'search', label: 'Подбор поставщиков' }, { id: 'about', label: 'Качество и источники' }];
+// На телефоне первый раздел называется короче, чтобы оба помещались в шапку без прокрутки.
+const nav = (narrow: boolean): { id: NavId; label: string }[] => [{ id: 'search', label: narrow ? 'Подбор' : 'Подбор поставщиков' }, { id: 'about', label: 'Качество и источники' }];
 const ranked = (items: Item[], isNew: boolean): RankedItem[] => items.map((it, i) => ({ ...it, rank: i + 1, rel: relScore(it, items), isNew }));
 
 export function App() {
@@ -25,6 +26,7 @@ export function App() {
   const [compare, setCompare] = React.useState<string[]>([]);
   const [headerQuery, setHeaderQuery] = React.useState<{ text: string } | null>(null);
   const req = React.useRef(0);
+  const narrow = useNarrow();
 
   const run = async (promise: Promise<Recommendation>) => {
     const id = ++req.current;
@@ -61,7 +63,7 @@ export function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--surface-page)' }}>
-      <AppHeader<NavId> product="Подбор поставщиков" note="АИС ГЗ и электронный магазин" active={screen === 'about' ? 'about' : 'search'} onNav={setScreen} nav={NAV}
+      <AppHeader<NavId> product="Подбор поставщиков" note="АИС ГЗ и электронный магазин" active={screen === 'about' ? 'about' : 'search'} onNav={setScreen} nav={nav(narrow)}
         compareCount={compare.length} onCompare={() => setScreen('compare')} quickSearchPlaceholder="Номер лота или предмет"
         onQuickSearch={(text) => { setScreen('search'); setHeaderQuery({ text }); }} />
       {/* Экран подбора не размонтируется: при возврате из карточки сохраняются фильтры, вкладка и запрос. */}

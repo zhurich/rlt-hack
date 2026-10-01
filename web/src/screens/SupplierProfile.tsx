@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Icon, Button, Badge, Card, MatchScore, Requisites, EmptyState, DataTable, Breadcrumbs } from '../ds';
 import type { DataTableColumn } from '../ds';
 import { StatusChip, RoleChip, MspChip, ActualChip } from '../components/chips';
-import { num, money, date, pct, cap, orgName, MSP, hasDebt, inRnp, winRate } from '../lib';
+import { useNarrow, num, money, date, pct, cap, orgName, MSP, hasDebt, inRnp, winRate } from '../lib';
 import type { Lot, RankedItem, SimilarLot } from '../types';
 
 function Check({ ok, warn, children }: { ok: boolean; warn?: boolean; children: ReactNode }) {
@@ -29,6 +29,7 @@ export interface SupplierProfileProps {
 }
 
 export function SupplierProfile({ item, lot, mark, back, inCompare, toggleCompare, onLot }: SupplierProfileProps) {
+  const narrow = useNarrow();
   if (!item || !lot) return (
     <div style={{ maxWidth: 'var(--container-max)', margin: '24px auto', padding: '0 var(--gutter)' }}>
       <Card padding={0}><EmptyState title="Компания не выбрана" action={<Button variant="outline" onClick={back}>Перейти к подбору</Button>}>Откройте карточку из результатов подбора.</EmptyState></Card>
@@ -96,12 +97,12 @@ export function SupplierProfile({ item, lot, mark, back, inCompare, toggleCompar
 
           {similar.length ? (
             <Card title="Похожие закупки с его участием" subtitle="Строка открывает подбор по этой закупке">
-              <DataTable density="dense" rowKey="lot_id" rows={similar} onRowClick={(r) => onLot(r.lot_id)} columns={SIMILAR_COLUMNS} />
+              <DataTable density={narrow ? 'compact' : 'dense'} rowKey="lot_id" rows={similar} onRowClick={(r) => onLot(r.lot_id)} columns={narrow ? SIMILAR_COLUMNS.filter((x) => x.key !== 'sim') : SIMILAR_COLUMNS} />
             </Card>
           ) : null}
         </div>
 
-        <div style={{ flex: '1 1 320px', maxWidth: 400, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="neva-side" style={{ flex: '1 1 320px', maxWidth: 400, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Card title="Соответствие закупке" padding={20}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <MatchScore value={item.rel} size={72} unit="" title="Балл относительно первого места" />

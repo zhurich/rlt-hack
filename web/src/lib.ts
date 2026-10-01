@@ -1,6 +1,20 @@
 // Запросы к API и форматы чисел/дат по правилам дизайн-системы
 // (разряды через неразрывный пробел, десятичная запятая, «₽» после суммы, даты ДД.ММ.ГГГГ).
+import React from 'react';
 import type { Company, Item, Role, Status } from './types';
+
+// Узкий экран (телефон): та же граница, что у правил @media в ds/styles.css.
+const NARROW = '(max-width: 640px)';
+export function useNarrow(): boolean {
+  const [narrow, setNarrow] = React.useState(() => window.matchMedia(NARROW).matches);
+  React.useEffect(() => {
+    const mq = window.matchMedia(NARROW);
+    const on = () => setNarrow(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return narrow;
+}
 
 export async function api<T>(url: string, opts?: RequestInit): Promise<T> {
   const r = await fetch(url, opts);

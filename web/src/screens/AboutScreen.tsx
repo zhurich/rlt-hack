@@ -42,7 +42,7 @@ export function AboutScreen({ stats }: { stats: Stats | null }) {
               </div>
             </Card>
           </div>
-          <div style={{ flex: '1 1 320px', maxWidth: 400, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="neva-side" style={{ flex: '1 1 320px', maxWidth: 400, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Card title="Источники данных" subtitle="Собраны заранее; у каждой записи указан источник" padding={20}>
               <div style={{ display: 'grid', gap: 10, fontSize: 13 }}>
                 {s.sources.map((x) => <div key={x} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}><Icon name="database" size={16} color="var(--text-tertiary)" style={{ marginTop: 2 }} />{x}</div>)}

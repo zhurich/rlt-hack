@@ -216,6 +216,33 @@ a:hover { color: var(--text-link-hover); text-decoration: underline; }
 .neva-split { display: flex; gap: 24px; align-items: flex-start; }
 .neva-split > aside { width: 340px; flex: none; }
 @media (max-width: 960px) {
-  .neva-split { flex-direction: column; }
+  .neva-split { flex-direction: column; align-items: stretch; }
   .neva-split > aside { width: 100%; position: static !important; max-height: none !important; }
+  /* Название сервиса в шапке повторяет первый раздел — уступает место разделам. */
+  .neva-header-product { display: none !important; }
+  .neva-side { max-width: none !important; }
+}
+
+/* Телефон. Стили компонентов заданы в атрибуте style, поэтому правила здесь — с !important. */
+@media (max-width: 640px) {
+  :root { --gutter: 16px; }
+  /* Поля ввода не мельче 16px — иначе Safari на телефоне увеличивает страницу при фокусе. */
+  input, select, textarea { font-size: 16px !important; }
+
+  .neva-header-note, .neva-header-search { display: none !important; }
+  .neva-header-bar { gap: 8px !important; }
+  .neva-header-nav { margin-left: -10px; }
+  .neva-header-nav > a { padding: 0 10px !important; font-size: 13px !important; }
+
+  .app-form-row > * { flex: 1 1 100% !important; padding-bottom: 0 !important; }
+  .app-tabs-row > [role="tablist"]:first-child { flex: 1 1 100% !important; }
+  .app-card-head { gap: 12px !important; padding: 16px 16px 12px !important; }
+  .app-card-reasons { margin: 0 16px !important; }
+  .app-card-foot { padding: 12px 16px 16px !important; gap: 12px !important; }
+  .app-card-actions { flex: 1 1 100% !important; }
+  .app-card-actions > * { flex: 1; justify-content: center; }
+  .app-compare th:first-child { width: 96px !important; }
+  .app-compare th:not(:first-child) { min-width: 200px !important; padding: 12px !important; }
+  .app-compare td { padding: 10px 12px !important; }
+  .app-compare td:first-child { font-size: 12px !important; }
 }

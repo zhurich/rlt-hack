@@ -3,7 +3,7 @@ import { Icon, Button, Input, Select, Checkbox, Switch, Alert, Badge, Tag, Card,
 import type { BadgeProps, DataTableColumn, RequisiteItem } from '../ds';
 import { SupplierCard } from '../components/SupplierCard';
 import { StatusChip, ActualChip } from '../components/chips';
-import { api, errorText, num, rub, money, date, cap, orgName, ROLES, STATUSES } from '../lib';
+import { api, errorText, useNarrow, num, rub, money, date, cap, orgName, ROLES, STATUSES } from '../lib';
 import type { Actual, Lists, LotBrief, NewPurchase, Participant, RankedItem, Recommendation, Role, Status } from '../types';
 
 type Mode = 'lot' | 'new';
@@ -133,6 +133,9 @@ const FOUND_COLUMNS: DataTableColumn<LotBrief>[] = [
   { key: 'price', title: 'Цена', align: 'right', nowrap: true, render: (r) => money(r.price) },
   { key: 'participants', title: 'Участников', align: 'right' },
 ];
+// На телефоне в таблицах остаются только главные колонки — остальное есть в карточке.
+const FOUND_NARROW = ['lot_id', 'subject', 'publish_date'];
+const RANKED_NARROW = ['rank', 'name', 'rel'];
 
 export interface SearchScreenProps {
   examples: LotBrief[];
@@ -161,6 +164,7 @@ export function SearchScreen({ examples, data, lists, actual, loading, error, he
   const [tab, setTab] = React.useState<ListTab>('known');
   const [view, setView] = React.useState<View>('list');
   const [f, setF] = React.useState<Filters>(NO_FILTERS);
+  const narrow = useNarrow();
 
   React.useEffect(() => {
     setTab('known'); setF(NO_FILTERS); setFound(null);
@@ -195,8 +199,8 @@ export function SearchScreen({ examples, data, lists, actual, loading, error, he
   const applied: Applied[] = [...f.role.map((value): Applied => ({ key: 'role', value })), ...f.status.map((value): Applied => ({ key: 'status', value })), ...(f.msp ? [{ key: 'msp' } as const] : [])];
   const drop = (a: Applied) => setF(a.key === 'role' ? { ...f, role: f.role.filter((x) => x !== a.value) } : a.key === 'status' ? { ...f, status: f.status.filter((x) => x !== a.value) } : { ...f, msp: false });
 
-  const columns: DataTableColumn<RankedItem>[] = [
-    { key: 'rank', title: '№', align: 'right', width: 44 },
+  const allColumns: DataTableColumn<RankedItem>[] = [
+    { key: 'rank', title: '№', align: 'right', width: narrow ? 28 : 44 },
     { key: 'name', title: 'Организация', render: (r) => <div><div style={{ fontWeight: 600 }}>{orgName(r.company)}</div><div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{[r.company.role ? cap(r.company.role) : null, r.company.place].filter(Boolean).join(' · ')}</div>{actual[r.inn] != null ? <div style={{ marginTop: 4 }}><ActualChip mark={actual[r.inn]} size="sm" /></div> : null}</div> },
     { key: 'inn', title: 'ИНН', mono: true, nowrap: true },
     { key: 'status', title: 'Статус', render: (r) => <StatusChip company={r.company} size="sm" /> },
@@ -205,6 +209,8 @@ export function SearchScreen({ examples, data, lists, actual, loading, error, he
       : [{ key: 'revenue', title: 'Выручка', align: 'right', nowrap: true, render: (r) => money(r.company.revenue) }, { key: 'headcount', title: 'Работников', align: 'right', render: (r) => num(r.company.headcount) }] satisfies DataTableColumn<RankedItem>[]),
     { key: 'rel', title: 'Балл', align: 'right', render: (r) => <MatchScore value={r.rel} variant="inline" unit="" /> },
   ];
+  const columns = narrow ? allColumns.filter((c) => RANKED_NARROW.includes(c.key)) : allColumns;
+  const foundColumns = narrow ? FOUND_COLUMNS.filter((c) => FOUND_NARROW.includes(c.key)) : FOUND_COLUMNS;
 
   return (
     <div>
@@ -220,7 +226,7 @@ export function SearchScreen({ examples, data, lists, actual, loading, error, he
           ) : (
             <div>
               <SearchBar value={nw.text} onChange={(v) => setNw({ ...nw, text: v })} onSubmit={submitNew} button="Подобрать" placeholder="Предмет закупки, например: поставка бумаги для офисной техники А4" />
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 12, marginTop: 12 }}>
+              <div className="app-form-row" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 12, marginTop: 12 }}>
                 <Input label="ОКПД2" mono placeholder="17.12.14.110, 17.23" hint="Необязательно, через запятую" value={nw.codes} onChange={(e) => setNw({ ...nw, codes: e.target.value })} style={{ flex: '1 1 240px' }} />
                 <Input label="Начальная цена" placeholder="300 000" suffix="₽" inputMode="decimal" hint="Необязательно" value={nw.price} onChange={(e) => setNw({ ...nw, price: e.target.value })} style={{ flex: '0 1 180px' }} />
                 <Select label="Площадка" placeholder="Не указана" hint="Необязательно" options={['ЭМ', 'АИС ГЗ']} value={nw.source} onChange={(e) => setNw({ ...nw, source: e.target.value })} style={{ flex: '0 1 180px' }} />
@@ -230,7 +236,7 @@ export function SearchScreen({ examples, data, lists, actual, loading, error, he
           )}
           {searchErr ? <Alert tone="danger" style={{ marginTop: 12 }} onClose={() => setSearchErr(null)}>{searchErr}</Alert> : null}
           {found ? (found.length
-            ? <DataTable density="compact" style={{ marginTop: 12 }} rowKey="lot_id" rows={found} onRowClick={(r) => onLot(r.lot_id)} columns={FOUND_COLUMNS} />
+            ? <DataTable density="compact" style={{ marginTop: 12 }} rowKey="lot_id" rows={found} onRowClick={(r) => onLot(r.lot_id)} columns={foundColumns} />
             : <Alert tone="info" style={{ marginTop: 12 }}>Закупки не найдены. Опишите предмет другими словами или введите номер лота.</Alert>) : null}
         </div>
       </div>
@@ -250,8 +256,8 @@ export function SearchScreen({ examples, data, lists, actual, loading, error, he
               <FiltersPanel items={all} f={f} setF={setF} />
             </aside>
             <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', borderBottom: '1px solid var(--border-default)' }}>
-                <Tabs<ListTab> style={{ flex: 1, borderBottom: 0 }} value={tab} onChange={setTab} items={[{ id: 'known', label: 'Рекомендуемые поставщики', count: lists.known.length }, { id: 'new', label: 'Новые компании из реестров', count: lists.new.length }]} />
+              <div className="app-tabs-row" style={{ display: 'flex', alignItems: 'flex-end', gap: narrow ? 4 : 16, flexWrap: 'wrap', borderBottom: '1px solid var(--border-default)' }}>
+                <Tabs<ListTab> style={{ flex: 1, borderBottom: 0 }} value={tab} onChange={setTab} items={[{ id: 'known', label: narrow ? 'Рекомендуемые' : 'Рекомендуемые поставщики', count: lists.known.length }, { id: 'new', label: narrow ? 'Новые компании' : 'Новые компании из реестров', count: lists.new.length }]} />
                 <Tabs<View> variant="segmented" style={{ marginBottom: 6 }} value={view} onChange={setView} items={[{ id: 'list', label: 'Карточки' }, { id: 'table', label: 'Таблица' }]} />
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
@@ -272,7 +278,7 @@ export function SearchScreen({ examples, data, lists, actual, loading, error, he
               ) : view === 'list' ? (
                 list.map((it) => <SupplierCard key={it.inn} item={it} mark={actual[it.inn]} inCompare={compare.includes(it.inn)} onOpen={() => openSupplier(it.inn)} onCompare={() => toggleCompare(it.inn)} />)
               ) : (
-                <DataTable<RankedItem, string> selectable selected={compare} onSelect={setCompare} rowKey="inn" rows={list} onRowClick={(r) => openSupplier(r.inn)} columns={columns} />
+                <DataTable<RankedItem, string> density={narrow ? 'compact' : 'regular'} selectable={!narrow} selected={compare} onSelect={setCompare} rowKey="inn" rows={list} onRowClick={(r) => openSupplier(r.inn)} columns={columns} />
               )}
             </main>
           </div>
