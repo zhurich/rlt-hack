@@ -12,7 +12,7 @@ RAW = ROOT / "data" / "raw"
 DB = ROOT / "data" / "rlt.duckdb"
 
 
-def read_csv(name: str) -> str:
+def read_csv(name: str | Path) -> str:
     path = (RAW / name).as_posix()
     return (
         f"read_csv('{path}', delim=';', quote='\"', escape='\"', header=true, "
@@ -20,11 +20,8 @@ def read_csv(name: str) -> str:
     )
 
 
-def main() -> None:
-    con = duckdb.connect(str(DB))
-
-    con.execute(f"""
-        create or replace table notices as
+def notices_select(name: str | Path) -> str:
+    return f"""
         select
             try_cast(publish_date as date) as publish_date,
             try_cast(procedure_id as bigint) as procedure_id,
@@ -37,17 +34,25 @@ def main() -> None:
             nullif(trim(customer_inn), '') as customer_inn,
             nullif(trim(customer_kpp), '') as customer_kpp,
             nullif(trim(is_eshop_or_aisgz), '') as source
-        from {read_csv('notices.csv')}
-    """)
+        from {read_csv(name)}
+    """
 
-    con.execute(f"""
-        create or replace table tru as
+
+def tru_select(name: str | Path) -> str:
+    return f"""
         select
             try_cast(lot_id as bigint) as lot_id,
             nullif(trim(product_name), '') as product_name,
             nullif(trim(okpd2_code), '') as okpd2_code
-        from {read_csv('tru.csv')}
-    """)
+        from {read_csv(name)}
+    """
+
+
+def main() -> None:
+    con = duckdb.connect(str(DB))
+
+    con.execute(f"create or replace table notices as {notices_select('notices.csv')}")
+    con.execute(f"create or replace table tru as {tru_select('tru.csv')}")
 
     con.execute(f"""
         create or replace table suppliers as

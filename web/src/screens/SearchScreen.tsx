@@ -43,16 +43,16 @@ function SearchBar({ value, onChange, onSubmit, placeholder, button, busy, examp
           style={{ flex: 1, minWidth: 0, height: '100%', border: 0, outline: 'none', background: 'transparent', fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--text-primary)' }} />
         <Button type="submit" loading={busy}>{button}</Button>
       </form>
-      {examples && examples.length ? (
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 14px', marginTop: 10 }}>
-          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Примеры:</span>
-          {examples.map((ex) => (
+      {([['Тестовый набор:', (examples || []).filter((ex) => ex.test)], ['Из истории:', (examples || []).filter((ex) => !ex.test)]] as const).map(([label, group]) => group.length ? (
+        <div key={label} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 14px', marginTop: 10 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{label}</span>
+          {group.map((ex) => (
             <button key={ex.lot_id} type="button" title={ex.subject} onClick={() => onExample && onExample(ex)}
               style={{ border: 0, background: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--text-link)', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3,
                 maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.subject}</button>
           ))}
         </div>
-      ) : null}
+      ) : null)}
     </div>
   );
 }

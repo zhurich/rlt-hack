@@ -100,6 +100,7 @@ export interface LotBrief {
   price: number | null;
   subject: string;
   participants: number;
+  test?: boolean; // процедура из тестового набора организаторов, участники неизвестны
 }
 
 export interface Stats {
