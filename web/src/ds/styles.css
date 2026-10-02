@@ -235,6 +235,7 @@ a:hover { color: var(--text-link-hover); text-decoration: underline; }
   .neva-header-nav > a { padding: 0 10px !important; font-size: 13px !important; }
 
   .app-form-row > * { flex: 1 1 100% !important; padding-bottom: 0 !important; }
+  .app-sets > div { flex: 1 1 100% !important; width: auto !important; max-width: none !important; }
   .app-tabs-row > [role="tablist"]:first-child { flex: 1 1 100% !important; }
   .app-card-head { gap: 12px !important; padding: 16px 16px 12px !important; }
   .app-card-reasons { margin: 0 16px !important; }

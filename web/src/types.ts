@@ -79,8 +79,13 @@ export interface Lot {
   subject: string | null;
   is_smp: boolean;
   customer_inn: string | null;
-  positions: { name: string; code: string; n: number }[];
+  /** code_original — код из исходного файла, если класс ОКПД2 в нём был испорчен и восстановлен */
+  positions: { name: string; code: string; n: number; code_original?: string }[];
   participants: Participant[];
+  /** Наборы организаторов, в которых есть эта процедура */
+  datasets?: string[];
+  /** Восстановленные коды ОКПД2: что было, что стало и чем обосновано */
+  code_fixes?: { from: string; to: string; how: string; positions: number }[];
 }
 
 export interface Recommendation {
@@ -100,7 +105,8 @@ export interface LotBrief {
   price: number | null;
   subject: string;
   participants: number;
-  test?: boolean; // процедура из тестового набора организаторов, участники неизвестны
+  /** Набор организаторов (тестовый, предзащита); у процедур из него участники неизвестны */
+  dataset?: string;
 }
 
 export interface Stats {

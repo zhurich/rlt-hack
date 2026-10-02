@@ -12,10 +12,19 @@ RAW = ROOT / "data" / "raw"
 DB = ROOT / "data" / "rlt.duckdb"
 
 
-def read_csv(name: str | Path) -> str:
+NOTICE_COLUMNS = ("publish_date", "procedure_id", "lot_id", "start_price", "reqnum", "procedure_name",
+                  "subject", "is_smp", "customer_inn", "customer_kpp", "is_eshop_or_aisgz")
+TRU_COLUMNS = ("lot_id", "product_name", "okpd2_code")
+SUPPLIER_COLUMNS = ("lot_id", "supplier_inn", "supplier_kpp", "is_winner")
+
+
+def read_csv(name: str | Path, columns: tuple[str, ...]) -> str:
+    """Колонки берутся по порядку, строка заголовка пропускается: в части файлов организаторов
+    заголовок битый (два имени слиты в одно), а порядок колонок везде один."""
     path = (RAW / name).as_posix()
+    names = ", ".join(f"'{c}'" for c in columns)
     return (
-        f"read_csv('{path}', delim=';', quote='\"', escape='\"', header=true, "
+        f"read_csv('{path}', delim=';', quote='\"', escape='\"', header=false, skip=1, names=[{names}], "
         "all_varchar=true, strict_mode=false, null_padding=true)"
     )
 
@@ -34,7 +43,7 @@ def notices_select(name: str | Path) -> str:
             nullif(trim(customer_inn), '') as customer_inn,
             nullif(trim(customer_kpp), '') as customer_kpp,
             nullif(trim(is_eshop_or_aisgz), '') as source
-        from {read_csv(name)}
+        from {read_csv(name, NOTICE_COLUMNS)}
     """
 
 
@@ -44,7 +53,7 @@ def tru_select(name: str | Path) -> str:
             try_cast(lot_id as bigint) as lot_id,
             nullif(trim(product_name), '') as product_name,
             nullif(trim(okpd2_code), '') as okpd2_code
-        from {read_csv(name)}
+        from {read_csv(name, TRU_COLUMNS)}
     """
 
 
@@ -61,7 +70,7 @@ def main() -> None:
             nullif(trim(supplier_inn), '') as supplier_inn,
             nullif(trim(supplier_kpp), '') as supplier_kpp,
             try_cast(is_winner as boolean) as is_winner
-        from {read_csv('suppliers.csv')}
+        from {read_csv('suppliers.csv', SUPPLIER_COLUMNS)}
     """)
 
     for table in ("notices", "tru", "suppliers"):

@@ -34,6 +34,13 @@ interface SearchBarProps {
 // подбор работает на локальных индексах, нейросети в нём нет.
 function SearchBar({ value, onChange, onSubmit, placeholder, button, busy, examples, onExample }: SearchBarProps) {
   const [focus, setFocus] = React.useState(false);
+  // Процедуры из наборов организаторов выбираются из списков (их больше сотни), кейсы из истории — ссылками.
+  const [dataset, setDataset] = React.useState('');
+  const tests = (examples || []).filter((ex) => ex.dataset);
+  const demos = (examples || []).filter((ex) => !ex.dataset);
+  const sets = Array.from(new Set(tests.map((ex) => ex.dataset as string)));
+  const current = sets.includes(dataset) ? dataset : sets[0] || '';
+  const inSet = tests.filter((ex) => ex.dataset === current);
   return (
     <div>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} style={{ display: 'flex', alignItems: 'center', gap: 8, height: 56, padding: '0 6px 0 16px', background: 'var(--surface-card)',
@@ -43,16 +50,26 @@ function SearchBar({ value, onChange, onSubmit, placeholder, button, busy, examp
           style={{ flex: 1, minWidth: 0, height: '100%', border: 0, outline: 'none', background: 'transparent', fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--text-primary)' }} />
         <Button type="submit" loading={busy}>{button}</Button>
       </form>
-      {([['Тестовый набор:', (examples || []).filter((ex) => ex.test)], ['Из истории:', (examples || []).filter((ex) => !ex.test)]] as const).map(([label, group]) => group.length ? (
-        <div key={label} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 14px', marginTop: 10 }}>
-          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{label}</span>
-          {group.map((ex) => (
+      {sets.length ? (
+        <div className="app-sets" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 10px', marginTop: 10 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Наборы организаторов:</span>
+          <Select size="sm" aria-label="Набор" value={current} onChange={(e) => setDataset(e.target.value)} style={{ width: 220 }}
+            options={sets.map((name) => ({ value: name, label: name + ' · ' + tests.filter((ex) => ex.dataset === name).length }))} />
+          <Select size="sm" aria-label="Процедура из набора" value="" placeholder="Выберите процедуру" style={{ flex: '1 1 320px', maxWidth: 560 }}
+            onChange={(e) => { const ex = inSet.find((x) => String(x.lot_id) === e.target.value); if (ex && onExample) onExample(ex); }}
+            options={inSet.map((ex) => ({ value: String(ex.lot_id), label: ex.lot_id + ' · ' + ex.subject }))} />
+        </div>
+      ) : null}
+      {demos.length ? (
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 14px', marginTop: 10 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{sets.length ? 'Из истории:' : 'Примеры:'}</span>
+          {demos.map((ex) => (
             <button key={ex.lot_id} type="button" title={ex.subject} onClick={() => onExample && onExample(ex)}
               style={{ border: 0, background: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--text-link)', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3,
                 maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.subject}</button>
           ))}
         </div>
-      ) : null)}
+      ) : null}
     </div>
   );
 }
@@ -66,6 +83,9 @@ function LotCard({ data }: { data: Recommendation }) {
   items.push({ label: 'Площадка', value: (l.source || 'не указана') + (l.is_smp ? ' · для СМП' : '') });
   items.push({ label: 'Цена', value: rub(l.price) });
   if (l.customer_inn) items.push({ label: 'Заказчик', value: l.customer_inn, mono: true, copyable: true });
+  if (l.datasets && l.datasets.length) items.push({ label: 'Набор', value: l.datasets.join(', ') });
+  const fixes = l.code_fixes || [];
+  const fixed = fixes.reduce((n, f) => n + f.positions, 0);
   return (
     <Card title={'Закупка' + (l.lot_id ? ' № ' + l.lot_id : '')} padding={20}>
       <div style={{ fontSize: 15, lineHeight: '22px', fontWeight: 600, marginBottom: 12, textWrap: 'pretty' }}>{l.subject || 'Предмет не указан'}</div>
@@ -74,12 +94,18 @@ function LotCard({ data }: { data: Recommendation }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
         {data.codes.length ? data.codes.map((c) => <Code key={c.code}>{c.code} · {Math.round(c.share * 100)}&nbsp;%</Code>) : '—'}
       </div>
+      {fixes.length ? (
+        <div style={{ marginTop: 8, fontSize: 12, lineHeight: '16px', color: 'var(--text-tertiary)' }}>
+          В исходных данных класс ОКПД2 испорчен ({fixes[0].from.slice(0, 2)} вместо настоящего) — восстановлен по похожим закупкам{l.positions.length ? ' в ' + fixed + ' поз.' : ''}:{' '}
+          {fixes.slice(0, 3).map((f, i) => <span key={f.from + f.to} title={f.how} style={{ fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{i ? ', ' : ''}{f.from} → {f.to}</span>)}{fixes.length > 3 ? ' и ещё ' + (fixes.length - 3) : ''}
+        </div>
+      ) : null}
       {l.positions.length ? (
         <ul style={{ listStyle: 'none', margin: '14px 0 0', padding: 0, maxHeight: 168, overflowY: 'auto', fontSize: 13, lineHeight: '18px' }}>
           {l.positions.map((p, i) => (
             <li key={i} style={{ display: 'flex', gap: 8, justifyContent: 'space-between', padding: '6px 0', borderTop: '1px solid var(--border-subtle)' }}>
               <span style={{ minWidth: 0 }}>{p.name}{p.n > 1 ? ' ×' + p.n : ''}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{p.code}</span>
+              <span title={p.code_original ? 'В исходном файле: ' + p.code_original : undefined} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{p.code}{p.code_original ? '*' : ''}</span>
             </li>
           ))}
         </ul>

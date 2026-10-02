@@ -30,9 +30,6 @@ QUALITY = {
 
 # Кейсы для защиты (docs/defense.md), все — из отложенного периода ноября–декабря 2025.
 DEMO_LOTS = [5964926, 6038385, 5953570, 6026673, 5959879, 6019464, 5954657]
-# Процедуры из тестового набора организаторов (2026 год, участники неизвестны) — отдельной строкой
-# примеров: канцтовары, реагенты, вывоз отходов, мебель, светильники, продукты, трудный случай.
-TEST_LOTS = [6074203, 6015216, 6066666, 6053489, 6068719, 6065683, 6157797]
 
 state: dict = {}
 
@@ -40,8 +37,8 @@ state: dict = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     state["svc"] = Service()
-    state["examples"] = [{**ex, "test": ex["lot_id"] in TEST_LOTS}
-                         for ex in state["svc"].examples(TEST_LOTS + DEMO_LOTS)]
+    # Сначала все процедуры из наборов организаторов (у них есть dataset), затем кейсы из истории.
+    state["examples"] = state["svc"].test_examples() + state["svc"].examples(DEMO_LOTS)
     state["stats"] = {**state["svc"].stats(), **QUALITY}
     yield
 

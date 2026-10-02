@@ -7,6 +7,7 @@ from pathlib import Path
 import duckdb
 import numpy as np
 
+from .codefix import CodeFixer
 from .explain import NEW_FACTOR_LABELS, explain_known, explain_new, factors
 from .pool import POOL, Pool
 from .recommender import Query, Recommender
@@ -26,6 +27,12 @@ class Service:
         self.rec = Recommender()
         self.pool = Pool() if POOL.exists() else None
         self.con = duckdb.connect(str(DB), read_only=True)
+        # Наборы организаторов (scripts/add_procedures.py): участники неизвестны, часть кодов исправлена.
+        self.has_sets = bool(self._rows("select 1 from duckdb_tables() where table_name = 'code_fixes'", []))
+        test = [r["lot_id"] for r in self._rows("select distinct lot_id from test_lots", [])] if self.has_sets else []
+        pos = np.searchsorted(self.rec.lot_id, test)
+        pos = pos[pos < len(self.rec.lot_id)]
+        self.fixer = CodeFixer(self.rec, exclude_lots=pos[np.isin(self.rec.lot_id[pos], test)])
 
     def _rows(self, sql: str, params: list) -> list[dict]:
         cur = self.con.cursor().execute(sql, params)
@@ -52,7 +59,27 @@ class Service:
         lot["participants"] = self._rows("""
             select supplier_inn as inn, bool_or(is_winner) as won
             from suppliers where lot_id = ? group by all""", [lot_id])
+        lot["datasets"], lot["code_fixes"] = [], []
+        if self.has_sets:
+            lot["datasets"] = [r["dataset"] for r in self._rows(
+                "select dataset from test_lots where lot_id = ? order by dataset", [lot_id])]
+            lot["code_fixes"] = self._rows("""
+                select original as "from", fixed as "to", how, positions
+                from code_fixes where lot_id = ? order by positions desc, original""", [lot_id])
+            was = {f["to"]: f["from"] for f in lot["code_fixes"]}
+            for p in lot["positions"]:
+                if p["code"] in was:
+                    p["code_original"] = was[p["code"]]
         return lot
+
+    def test_examples(self) -> list[dict]:
+        """Все процедуры из наборов организаторов; лот из нескольких наборов — строка на каждый."""
+        if not self.has_sets:
+            return []
+        return self._rows("""
+            select n.lot_id, n.publish_date, n.source, n.start_price as price, n.subject,
+                0 as participants, t.dataset
+            from test_lots t join notices n using (lot_id) order by t.dataset, n.lot_id""", [])
 
     def search_lots(self, text: str, limit: int = 10) -> list[dict]:
         """Найти закупки в истории по тексту — чтобы выбрать лот для подбора."""
@@ -126,9 +153,17 @@ class Service:
                  customer_inn: str | None = None, source: str | None = None, is_smp: bool = False,
                  top_n: int = 15, new_n: int = 10) -> dict:
         is_ais = {"АИС ГЗ": True, "ЭМ": False}.get(source)
+        # Код с испорченным классом (как в части файлов организаторов) восстанавливается по тексту.
+        fixes = []
+        for i, code in enumerate(codes or []):
+            fix = self.fixer.fix(code.strip(), text, text)
+            if fix.changed:
+                fixes.append({"from": code.strip(), "to": fix.code, "how": fix.how, "positions": 1})
+                codes[i] = fix.code
         q = self.rec.query_from_input(text, codes, price, customer_inn, is_ais, is_smp)
         lot = {"lot_id": None, "subject": text, "price": price, "source": source, "is_smp": is_smp,
-               "customer_inn": customer_inn, "positions": [], "participants": []}
+               "customer_inn": customer_inn, "positions": [], "participants": [],
+               "datasets": [], "code_fixes": fixes}
         out = self._build(q, lot, top_n, new_n)
         out.pop("_score")
         out.pop("_positive")
