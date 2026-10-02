@@ -232,6 +232,13 @@ class Recommender:
             live = bid_idx[bw > 0]
             facts["customer_bids"] = np.bincount(self.bid_sup[live], minlength=n)
             facts["customer_wins"] = np.bincount(self.bid_sup[live], weights=self.bid_win[live], minlength=n)
+            # История с заказчиком засчитывается только поставщикам из того же класса ОКПД2 (без кодов —
+            # с похожими закупками): иначе на редком товаре наверх выходят постоянные поставщики
+            # заказчика из чужих категорий — комбинат питания в закупке музыкальных инструментов.
+            topical = facts["okpd2_bids"] > 0 if codes else raw["text"] > 0
+            for key in ("customer_bids", "customer_wins"):
+                facts[key] = np.where(topical, facts[key], 0)
+            raw["customer"] = np.where(topical, raw["customer"], 0.0)
 
         rel = {k: np.log1p(raw[k]) for k in REL_WEIGHTS}
 

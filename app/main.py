@@ -18,7 +18,7 @@ DIST = Path(__file__).resolve().parent.parent / "web" / "dist"
 
 # Цифры качества из docs/metrics.md и docs/enrichment.md — показываются в подвале страницы.
 QUALITY = {
-    "recall10": 0.656, "winner10": 0.671, "map10": 0.447, "test_lots": 5923,
+    "recall10": 0.660, "winner10": 0.674, "map10": 0.449, "test_lots": 5923,
     "baseline_okpd": 0.397, "baseline_popular": 0.048,
     "sources": [
         "История закупок АИС ГЗ и электронного магазина СПб, 2024–2025",
